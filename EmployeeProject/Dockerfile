@@ -1,3 +1,4 @@
+ARG boolvalue=no
 #FROM mcr.microsoft.com/dotnet/aspnet:5.0-buster-slim AS base
 FROM mcr.microsoft.com/dotnet/aspnet:3.1 AS base
 WORKDIR /app
@@ -10,7 +11,7 @@ FROM mcr.microsoft.com/dotnet/sdk:3.1 AS build
 WORKDIR /src
 COPY ["EmployeeProject.csproj", "EmployeeProject/"]
 
-ARG boolvalue=no
+
 RUN dotnet restore "EmployeeProject/EmployeeProject.csproj"
 COPY  . "EmployeeProject/"
 WORKDIR "/src/EmployeeProject"
@@ -23,7 +24,8 @@ RUN pwd \
     
 RUN dotnet tool run swagger tofile --output swagger.json bin/Debug/netcoreapp3.1/EmployeeProject.dll v1
 
-RUN if [ "$boolvalue" = "Yes" ] ; then dotnet tool install -g dotnet-sonarscanner && dotnet tool install -g dotnet-reportgenerator-globaltool \
+RUN if [ "$boolvalue" = "Yes" ] ; then \
+    dotnet tool install -g dotnet-sonarscanner && dotnet tool install -g dotnet-reportgenerator-globaltool \
     && export PATH="${PATH}:/root/.dotnet/tools" \
     && dotnet sonarscanner begin \
 	/k:testimplementation \
@@ -33,7 +35,10 @@ RUN if [ "$boolvalue" = "Yes" ] ; then dotnet tool install -g dotnet-sonarscanne
 	/d:sonar.coverageReportPaths="coverage/SonarQube.xml" \
     && dotnet test --collect:"XPlat Code Coverage" --results-directory ./coverage ; exit 0 \
     && reportgenerator "-reports:./coverage/*/coverage.cobertura.xml" "-targetdir:coverage" "-reporttypes:SonarQube" ; exit 0 \
-    && dotnet sonarscanner end; fi
+    && dotnet sonarscanner end; \
+    else \
+    echo "sonarscanning skipped"; \
+    fi
 
 
 FROM build AS publish
